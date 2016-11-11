@@ -24,3 +24,5 @@ function deploy(slack_channel, slack_endpoint, github_oath) {
     namespace.deploy(baseMachine.asMaster());
     namespace.deploy(baseMachine.asWorker());
 }
+
+module.exports.deploy = deploy;
