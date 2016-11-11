@@ -17,7 +17,7 @@ type starGazer struct {
 
 func main() {
 	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: "3b6b6e2f399c247e220d93224112e87d31579c3e"},
+		&oauth2.Token{AccessToken: os.Getenv("GITHUB_OATH")},
 	)
 	tc := oauth2.NewClient(oauth2.NoContext, ts)
 
