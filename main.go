@@ -16,6 +16,8 @@ type starGazer struct {
 }
 
 func main() {
+	fmt.Println("Started!")
+
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: os.Getenv("GITHUB_OATH")},
 	)
@@ -105,6 +107,7 @@ func getUsers(client *github.Client) []starGazer {
 	for {
 		sgs, resp, err := client.Activity.ListStargazers("Netsys", "quilt", opt)
 		if err != nil {
+			fmt.Println("Failed to get stargazers: %s", err)
 			break
 		}
 
