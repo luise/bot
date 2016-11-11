@@ -23,6 +23,7 @@ function deploy(slack_channel, slack_endpoint, github_oath) {
     // Boot VMs with the properties of `baseMachine`.
     namespace.deploy(baseMachine.asMaster());
     namespace.deploy(baseMachine.asWorker());
+    namespace.deploy(service)
 }
 
 module.exports.deploy = deploy;
