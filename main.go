@@ -25,9 +25,19 @@ func main() {
 
 	client := github.NewClient(tc)
 
-	users := getUsers(client)
-	for range time.Tick(2 * time.Second) {
-		new := getUsers(client)
+	var users []starGazer
+	for {
+		// The network doesn't come up for a while, so we don't start tracking
+		// diffs until we've had at least one successful getusers call.
+		var err error
+		users, err = getUsers(client)
+		if err != nil {
+			break
+		}
+	}
+
+	for range time.Tick(3 * time.Second) {
+		new, _ := getUsers(client)
 		runOnce(users, new)
 		users = new
 	}
@@ -100,15 +110,15 @@ func extraStargazer(base, check []starGazer) []starGazer {
 	return extras
 }
 
-func getUsers(client *github.Client) []starGazer {
+func getUsers(client *github.Client) ([]starGazer, error) {
 	var results []starGazer
 
 	opt := &github.ListOptions{}
 	for {
 		sgs, resp, err := client.Activity.ListStargazers("Netsys", "quilt", opt)
 		if err != nil {
-			fmt.Println("Failed to get stargazers: %s", err)
-			break
+			fmt.Println("Failed to get stargazers: ", err)
+			return nil, err
 		}
 
 		for _, s := range sgs {
@@ -124,5 +134,5 @@ func getUsers(client *github.Client) []starGazer {
 		opt.Page = resp.NextPage
 	}
 
-	return results
+	return results, nil
 }

@@ -6,6 +6,7 @@ function deploy(slack_channel, slack_endpoint, github_oath) {
     })]);
 
     service.connect(80, publicInternet);
+    service.connect(443, publicInternet);
     service.connect(53, publicInternet);
 
     var namespace = createDeployment({
@@ -15,8 +16,7 @@ function deploy(slack_channel, slack_endpoint, github_oath) {
 
     var baseMachine = new Machine({
         provider: "Amazon",
-        cpu: new Range(1),
-        ram: new Range(1),
+        size: "m3.medium",
         sshKeys: githubKeys("ejj"),
     });
 
