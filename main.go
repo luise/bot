@@ -31,7 +31,7 @@ func main() {
 		// diffs until we've had at least one successful getusers call.
 		var err error
 		users, err = getUsers(client)
-		if err != nil {
+		if err == nil {
 			break
 		}
 	}
