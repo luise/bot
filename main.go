@@ -36,14 +36,16 @@ func main() {
 		}
 	}
 
-	for range time.Tick(3 * time.Second) {
+	runReview(client)
+	for range time.Tick(5 * time.Second) {
+		runReview(client)
 		new, _ := getUsers(client)
-		runOnce(users, new)
+		runStarCheck(users, new)
 		users = new
 	}
 }
 
-func runOnce(users, new []starGazer) {
+func runStarCheck(users, new []starGazer) {
 	additions := extraStargazer(users, new)
 	deletions := extraStargazer(new, users)
 

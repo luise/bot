@@ -10,7 +10,7 @@ function deploy(slack_channel, slack_endpoint, github_oath) {
     service.connect(53, publicInternet);
 
     var namespace = createDeployment({
-        namespace: "quilt-star-bot",
+        namespace: "quilt-bot",
         adminACL: ["local"],
     });
 
