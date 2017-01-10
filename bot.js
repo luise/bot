@@ -1,5 +1,5 @@
 function deploy(slack_channel, slack_endpoint, github_oath) {
-    service = new Service("bot", [new Container("quilt/star-bot").withEnv({
+    service = new Service("bot", [new Container("quilt/bot").withEnv({
         "SLACK_CHANNEL": slack_channel,
         "SLACK_ENDPOINT": slack_endpoint,
         "GITHUB_OATH": github_oath,
