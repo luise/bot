@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"time"
@@ -8,6 +9,7 @@ import (
 	"golang.org/x/oauth2"
 
 	"github.com/google/go-github/github"
+	"github.com/gregjones/httpcache"
 )
 
 type starGazer struct {
@@ -21,7 +23,9 @@ func main() {
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: os.Getenv("GITHUB_OATH")},
 	)
-	tc := oauth2.NewClient(oauth2.NoContext, ts)
+	oathctx := context.WithValue(context.Background(), oauth2.HTTPClient,
+		httpcache.NewMemoryCacheTransport().Client())
+	tc := oauth2.NewClient(oathctx, ts)
 
 	client := github.NewClient(tc)
 
