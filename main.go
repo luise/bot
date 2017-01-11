@@ -26,22 +26,21 @@ func main() {
 	client := github.NewClient(tc)
 
 	var users []starGazer
-	for {
-		// The network doesn't come up for a while, so we don't start tracking
-		// diffs until we've had at least one successful getusers call.
-		var err error
-		users, err = getUsers(client)
-		if err == nil {
-			break
-		}
-	}
-
-	runReview(client)
 	for range time.Tick(5 * time.Second) {
-		runReview(client)
-		new, _ := getUsers(client)
-		runStarCheck(users, new)
+		new, err := getUsers(client)
+		if err != nil {
+			fmt.Println("Failed to get users: %s")
+			continue
+		}
+
+		// When we first boot, we erronously "remember" zero stars.  Special case
+		// that away to avoid spamming.
+		if users != nil {
+			runStarCheck(users, new)
+		}
 		users = new
+
+		runReview(client)
 	}
 }
 
