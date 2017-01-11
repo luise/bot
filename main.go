@@ -33,7 +33,7 @@ func main() {
 	for range time.Tick(5 * time.Second) {
 		new, err := getUsers(client)
 		if err != nil {
-			fmt.Println("Failed to get users: %s")
+			fmt.Println("Failed to get stargazers: ", err)
 			continue
 		}
 
@@ -122,7 +122,6 @@ func getUsers(client *github.Client) ([]starGazer, error) {
 	for {
 		sgs, resp, err := client.Activity.ListStargazers("Netsys", "quilt", opt)
 		if err != nil {
-			fmt.Println("Failed to get stargazers: ", err)
 			return nil, err
 		}
 
