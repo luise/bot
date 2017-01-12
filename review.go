@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
+	"time"
 
 	"github.com/google/go-github/github"
 )
@@ -18,10 +20,31 @@ func runReview(client *github.Client) {
 		return
 	}
 
+	for _, pr := range prs {
+		processPullRequest(client, getTeamMembers(client), pr)
+	}
+}
+
+var cachedMembers []*github.User
+var memberRateLimit = time.Tick(time.Hour)
+
+func getTeamMembers(client *github.Client) []*github.User {
+	var refresh bool
+	select {
+	case <-memberRateLimit:
+		refresh = true
+	default:
+		refresh = false
+	}
+
+	if !refresh && cachedMembers != nil {
+		return cachedMembers
+	}
+
 	teams, _, err := client.Organizations.ListTeams("Netsys", nil)
 	if err != nil {
 		fmt.Println("Failed to list teams: ", err)
-		return
+		return cachedMembers
 	}
 
 	var quiltID *int
@@ -35,19 +58,43 @@ func runReview(client *github.Client) {
 	members, _, err := client.Organizations.ListTeamMembers(*quiltID, nil)
 	if err != nil {
 		fmt.Println("Failed to list team members: ", err)
-		return
+		return cachedMembers
 	}
 
-	for _, pr := range prs {
-		processPullRequest(client, members, pr)
-	}
+	cachedMembers = members
+	return cachedMembers
 }
 
 func processPullRequest(client *github.Client, members []*github.User,
 	pr *github.PullRequest) {
 
-	// Map from assigned user to whether or not they've approved the PR.
-	users := map[string]bool{}
+	users := map[string]struct{}{}
+	approved := false
+
+	reviews, err := getReviews(client, pr)
+	if err != nil {
+		fmt.Println("Failed to check for approval: ", err)
+		return
+	}
+	for _, review := range reviews {
+		users[*review.User.Login] = struct{}{}
+		approved = approved || review.State == "APPROVED"
+	}
+
+	// Github has a rather aggressive API rate limit at 5000 requests per hour.  Thus
+	// we go to rather great lengths to just have to make the single `getReviews`
+	// request without having to go one to get the requested reviewers as well.
+
+	// Ethan reviewed this pull request, nothing more to do.
+	if _, ok := users["ejj"]; ok {
+		return
+	}
+
+	// Someone has been assigned this PR, but they haven't approved it yet.  Can't do
+	// anything until they final say it's OK.
+	if len(users) > 0 && !approved {
+		return
+	}
 
 	reviewers, err := getRequestedReviewers(client, pr)
 	if err != nil {
@@ -56,33 +103,11 @@ func processPullRequest(client *github.Client, members []*github.User,
 	}
 
 	for _, reviewer := range reviewers {
-		users[*reviewer.Login] = false
-	}
-
-	reviews, err := getReviews(client, pr)
-	if err != nil {
-		fmt.Println("Failed to check for approval: ", err)
-		return
-	}
-
-	for _, review := range reviews {
-		users[*review.User.Login] = review.State == "APPROVED"
-	}
-
-	// If Ethan approved the PR, its ready.
-	if users["ejj"] {
-		return
-	}
-
-	var otherApproved bool
-	for _, approved := range users {
-		otherApproved = otherApproved || approved
+		users[*reviewer.Login] = struct{}{}
 	}
 
 	var assignment string
-
-	_, ethanAssigned := users["ejj"]
-	if !ethanAssigned && otherApproved {
+	if _, ok := users["ejj"]; !ok && approved {
 		if *pr.User.Login == "ejj" {
 			return
 		}
@@ -105,7 +130,7 @@ func processPullRequest(client *github.Client, members []*github.User,
 	}
 }
 
-var roundRobinIndex = 0
+var roundRobinIndex = rand.Intn(100)
 
 func chooseReviewer(pr *github.PullRequest, members []*github.User) *github.User {
 	for i := 0; i < len(members); i++ {

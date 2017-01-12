@@ -9,7 +9,6 @@ import (
 	"golang.org/x/oauth2"
 
 	"github.com/google/go-github/github"
-	"github.com/gregjones/httpcache"
 )
 
 type starGazer struct {
@@ -23,22 +22,18 @@ func main() {
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: os.Getenv("GITHUB_OATH")},
 	)
-	oathctx := context.WithValue(context.Background(), oauth2.HTTPClient,
-		httpcache.NewMemoryCacheTransport().Client())
-	tc := oauth2.NewClient(oathctx, ts)
+	tc := oauth2.NewClient(context.Background(), ts)
 
 	client := github.NewClient(tc)
 
 	var users []starGazer
-	for range time.Tick(5 * time.Second) {
+	for range time.Tick(15 * time.Second) {
 		new, err := getUsers(client)
 		if err != nil {
 			fmt.Println("Failed to get stargazers: ", err)
 			continue
 		}
 
-		// When we first boot, we erronously "remember" zero stars.  Special case
-		// that away to avoid spamming.
 		if users != nil {
 			runStarCheck(users, new)
 		}
