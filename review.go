@@ -25,12 +25,22 @@ func runReview(client *github.Client) {
 	}
 }
 
+var memberIndex = rand.Intn(100)
+var committerIndex = rand.Intn(100)
+
 func processPullRequest(client *github.Client, pr *github.PullRequest) {
+	members, committers := getTeamMembers(client)
+
+	committerSet := map[string]struct{}{}
+	for _, c := range committers {
+		committerSet[c] = struct{}{}
+	}
+
 	var assignees []string
 	for _, user := range pr.Assignees {
-		if *user.Login == "ejj" {
-			// The pull request has already been assigned to Ethan, so
-			// nothing more for quilt-bot to do.
+		if _, ok := commiterSet[*user.Login]; ok {
+			// The pull request has already been assigned to a
+			// committer, so nothing more for quilt-bot to do.
 			return
 		}
 		assignees = append(assignees, *user.Login)
@@ -38,10 +48,7 @@ func processPullRequest(client *github.Client, pr *github.PullRequest) {
 
 	var assignee string
 	if len(assignees) == 0 {
-		reviewer := chooseReviewer(client, pr)
-		if reviewer != nil {
-			assignee = *reviewer.Login
-		}
+		assignee = chooseReviewer(members, &memberIndex, pr)
 	} else {
 		reviews, err := getReviews(client, pr)
 		if err != nil {
@@ -51,7 +58,15 @@ func processPullRequest(client *github.Client, pr *github.PullRequest) {
 
 		for _, review := range reviews {
 			if review.State == "APPROVED" {
-				assignee = "ejj"
+				if _, ok := committerSet[*pr.User.Login]; ok {
+					// PRs opened by a committer need no further
+					// approval.
+					assignee = *pr.User.Login
+				} else {
+					assignee = chooseReviewer(committers,
+						&committerIndex, pr)
+				}
+				break
 			}
 		}
 	}
@@ -66,19 +81,16 @@ func processPullRequest(client *github.Client, pr *github.PullRequest) {
 	}
 }
 
-var roundRobinIndex = rand.Intn(100)
-
-func chooseReviewer(client *github.Client, pr *github.PullRequest) *github.User {
-	members := getTeamMembers(client)
-	for i := 0; i < len(members); i++ {
-		roundRobinIndex++
-		member := members[roundRobinIndex%len(members)]
-		if *member.Login != "ejj" && *member.Login != *pr.User.Login {
-			return member
+func chooseReviewer(options []string, index *int, pr *github.PullRequest) string {
+	for i := 0; i < len(options); i++ {
+		*index++
+		choice := options[*index%len(options)]
+		if choice != *pr.User.Login {
+			return choice
 		}
 	}
 
-	return nil
+	return ""
 }
 
 func getReviews(client *github.Client, pr *github.PullRequest) ([]review, error) {
@@ -118,42 +130,62 @@ func prRequest(client *github.Client, pr *github.PullRequest, method,
 	return err
 }
 
-var cachedMembers []*github.User
+var cachedMembers, cachedCommitters []string
 var memberRateLimit = time.Tick(time.Hour)
 
-func getTeamMembers(client *github.Client) []*github.User {
-	var refresh bool
+func getTeamMembers(client *github.Client) (members, committers []string) {
 	select {
 	case <-memberRateLimit:
-		refresh = true
 	default:
-		refresh = false
-	}
-
-	if !refresh && cachedMembers != nil {
-		return cachedMembers
+		if cachedMembers != nil && cachedCommitters != nil {
+			return cachedMembers, cachedCommitters
+		}
 	}
 
 	teams, _, err := client.Organizations.ListTeams("Netsys", nil)
 	if err != nil {
 		fmt.Println("Failed to list teams: ", err)
-		return cachedMembers
+		return cachedMembers, cachedCommitters
 	}
 
-	var quiltID *int
+	var memberID, committerID int
 	for _, team := range teams {
-		if *team.Name == "Quilt" {
-			quiltID = team.ID
-			break
+		switch *team.Name {
+		case "Quilt":
+			memberID = *team.ID
+		case "Quilt Committers":
+			committerID = *team.ID
 		}
 	}
 
-	members, _, err := client.Organizations.ListTeamMembers(*quiltID, nil)
+	newMembers, _, err := client.Organizations.ListTeamMembers(memberID, nil)
 	if err != nil {
 		fmt.Println("Failed to list team members: ", err)
-		return cachedMembers
+		return cachedMembers, cachedCommitters
 	}
 
-	cachedMembers = members
-	return cachedMembers
+	newCommitters, _, err := client.Organizations.ListTeamMembers(committerID, nil)
+	if err != nil {
+		fmt.Println("Failed to list committers: ", err)
+		return cachedMembers, cachedCommitters
+	}
+
+	cachedCommitters = []string{}
+	committerSet := map[string]struct{}{}
+	for _, c := range newCommitters {
+		committer := *c.Login
+		cachedCommitters = append(cachedCommitters, committer)
+		committerSet[committer] = struct{}{}
+	}
+
+	cachedMembers = []string{}
+	for _, m := range newMembers {
+		member := *m.Login
+		if _, ok := committerSet[member]; !ok {
+			cachedMembers = append(cachedMembers, member)
+		}
+	}
+
+	fmt.Printf("Members: %v. Committers: %v.\n", cachedMembers, cachedCommitters)
+	return cachedMembers, cachedCommitters
 }
