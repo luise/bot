@@ -38,7 +38,7 @@ func processPullRequest(client *github.Client, pr *github.PullRequest) {
 
 	var assignees []string
 	for _, user := range pr.Assignees {
-		if _, ok := commiterSet[*user.Login]; ok {
+		if _, ok := committerSet[*user.Login]; ok {
 			// The pull request has already been assigned to a
 			// committer, so nothing more for quilt-bot to do.
 			return
@@ -108,6 +108,12 @@ func assignPullRequest(client *github.Client, pr *github.PullRequest,
 		[]string{login})
 	if err != nil {
 		return err
+	}
+
+	if *pr.User.Login == login {
+		// This happens in the case when we assign a committer to their own
+		// review.
+		return nil
 	}
 
 	post := map[string][]string{"reviewers": []string{login}}
