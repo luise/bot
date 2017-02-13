@@ -1,4 +1,4 @@
-function deploy(slack_channel, slack_endpoint, github_oath) {
+exports.New = function(slack_channel, slack_endpoint, github_oath) {
     service = new Service("bot", [new Container("quilt/bot").withEnv({
         "SLACK_CHANNEL": slack_channel,
         "SLACK_ENDPOINT": slack_endpoint,
@@ -9,21 +9,5 @@ function deploy(slack_channel, slack_endpoint, github_oath) {
     service.connect(443, publicInternet);
     service.connect(53, publicInternet);
 
-    var namespace = createDeployment({
-        namespace: "quilt-bot",
-        adminACL: ["local"],
-    });
-
-    var baseMachine = new Machine({
-        provider: "Amazon",
-        size: "m3.medium",
-        sshKeys: githubKeys("ejj"),
-    });
-
-    // Boot VMs with the properties of `baseMachine`.
-    namespace.deploy(baseMachine.asMaster());
-    namespace.deploy(baseMachine.asWorker());
-    namespace.deploy(service);
+    return service;
 }
-
-module.exports.deploy = deploy;
