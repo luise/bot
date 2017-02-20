@@ -14,7 +14,7 @@ type review struct {
 }
 
 func runReview(client *github.Client) {
-	prs, _, err := client.PullRequests.List("Netsys", "quilt", nil)
+	prs, _, err := client.PullRequests.List("quilt", "quilt", nil)
 	if err != nil {
 		fmt.Println("Failed to list pull requests: ", err)
 		return
@@ -130,7 +130,7 @@ func assignRequestedReviewer(client *github.Client, pr *github.PullRequest,
 func prRequest(client *github.Client, pr *github.PullRequest, method,
 	action string, post, result interface{}) error {
 
-	url := fmt.Sprintf("/repos/Netsys/quilt/pulls/%d/%s", *pr.Number, action)
+	url := fmt.Sprintf("/repos/quilt/quilt/pulls/%d/%s", *pr.Number, action)
 	req, err := client.NewRequest(method, url, post)
 	if err != nil {
 		return err
@@ -155,7 +155,7 @@ func getTeamMembers(client *github.Client) (members, committers []string) {
 		}
 	}
 
-	teams, _, err := client.Organizations.ListTeams("Netsys", nil)
+	teams, _, err := client.Organizations.ListTeams("quilt", nil)
 	if err != nil {
 		fmt.Println("Failed to list teams: ", err)
 		return cachedMembers, cachedCommitters
@@ -164,9 +164,9 @@ func getTeamMembers(client *github.Client) (members, committers []string) {
 	var memberID, committerID int
 	for _, team := range teams {
 		switch *team.Name {
-		case "Quilt":
+		case "Reviewers":
 			memberID = *team.ID
-		case "Quilt Committers":
+		case "Committers":
 			committerID = *team.ID
 		}
 	}

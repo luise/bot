@@ -115,7 +115,7 @@ func getUsers(client *github.Client) ([]starGazer, error) {
 
 	opt := &github.ListOptions{}
 	for {
-		sgs, resp, err := client.Activity.ListStargazers("Netsys", "quilt", opt)
+		sgs, resp, err := client.Activity.ListStargazers("quilt", "quilt", opt)
 		if err != nil {
 			return nil, err
 		}
