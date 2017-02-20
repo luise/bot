@@ -27,7 +27,7 @@ func main() {
 	client := github.NewClient(tc)
 
 	var users []starGazer
-	for range time.Tick(10 * time.Second) {
+	for range time.Tick(15 * time.Second) {
 		new, err := getUsers(client)
 		if err != nil {
 			fmt.Println("Failed to get stargazers: ", err)

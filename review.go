@@ -31,53 +31,62 @@ var committerIndex = rand.Intn(100)
 func processPullRequest(client *github.Client, pr *github.PullRequest) {
 	members, committers := getTeamMembers(client)
 
-	committerSet := map[string]struct{}{}
-	for _, c := range committers {
-		committerSet[c] = struct{}{}
-	}
-
-	var assignees []string
-	for _, user := range pr.Assignees {
-		if _, ok := committerSet[*user.Login]; ok {
-			// The pull request has already been assigned to a
-			// committer, so nothing more for quilt-bot to do.
-			return
-		}
-		assignees = append(assignees, *user.Login)
-	}
-
-	var assignee string
-	if len(assignees) == 0 {
-		assignee = chooseReviewer(members, &memberIndex, pr)
-	} else {
-		reviews, err := getReviews(client, pr)
-		if err != nil {
-			fmt.Println("Failed to check for approval: ", err)
-			return
-		}
-
-		for _, review := range reviews {
-			if review.State == "APPROVED" {
-				if _, ok := committerSet[*pr.User.Login]; ok {
-					// PRs opened by a committer need no further
-					// approval.
-					assignee = *pr.User.Login
-				} else {
-					assignee = chooseReviewer(committers,
-						&committerIndex, pr)
-				}
-				break
-			}
-		}
-	}
-
-	if assignee == "" {
+	reviews, err := getReviews(client, pr)
+	if err != nil {
+		fmt.Println("Failed to check for approval: ", err)
 		return
 	}
 
-	if err := assignPullRequest(client, pr, assignee); err != nil {
-		fmt.Printf("Failed to assign %s to PR %d: %s\n", assignee,
-			*pr.Number, assignee)
+	var approved bool
+	users := map[string]struct{}{}
+	for _, review := range reviews {
+		users[*review.User.Login] = struct{}{}
+		approved = approved || review.State == "APPROVED"
+	}
+
+	committerSet := map[string]struct{}{}
+	for _, c := range committers {
+		committerSet[c] = struct{}{}
+		if _, ok := users[c]; ok {
+			return
+		}
+	}
+
+	// Someone has been assigned this PR, but they haven't approved it yet.  Can't do
+	// anything until they final say it's OK.
+	if len(users) > 0 && !approved {
+		return
+	}
+
+	reviewers, err := getRequestedReviewers(client, pr)
+	if err != nil {
+		fmt.Println("Failed to list requested reviewers: ", err)
+		return
+	}
+
+	for _, reviewer := range reviewers {
+		user := *reviewer.Login
+		users[user] = struct{}{}
+		if _, ok := committerSet[user]; ok {
+			// Assigned to a comitter, nothing more to do.
+			return
+		}
+	}
+
+	var assignee string
+	if len(users) == 0 {
+		// No one is assigned to the PR, go ahead and pick someone.
+		assignee = chooseReviewer(members, &memberIndex, pr)
+	} else if approved {
+		// No committer assigned, but the PR has been approved.
+		assignee = chooseReviewer(committers, &committerIndex, pr)
+	} else {
+		return
+	}
+
+	if err := assignRequestedReviewer(client, pr, assignee); err != nil {
+		fmt.Printf("Failed to assign %s to PR %d: %s\n",
+			assignee, *pr.Number, err)
 	}
 }
 
@@ -99,24 +108,22 @@ func getReviews(client *github.Client, pr *github.PullRequest) ([]review, error)
 	return reviews, err
 }
 
-func assignPullRequest(client *github.Client, pr *github.PullRequest,
-	login string) error {
+func getRequestedReviewers(client *github.Client,
+	pr *github.PullRequest) ([]github.User, error) {
 
+	var result []github.User
+	err := prRequest(client, pr, "GET", "requested_reviewers", nil, &result)
+	return result, err
+}
+
+func assignRequestedReviewer(client *github.Client, pr *github.PullRequest,
+	login string) error {
 	fmt.Printf("Assign Pull Request %d review to %s\n", *pr.Number, login)
 
-	_, _, err := client.Issues.AddAssignees("Netsys", "quilt", *pr.Number,
-		[]string{login})
-	if err != nil {
-		return err
+	post := map[string][]string{
+		"reviewers": []string{login},
 	}
 
-	if *pr.User.Login == login {
-		// This happens in the case when we assign a committer to their own
-		// review.
-		return nil
-	}
-
-	post := map[string][]string{"reviewers": []string{login}}
 	return prRequest(client, pr, "POST", "requested_reviewers", &post, nil)
 }
 
