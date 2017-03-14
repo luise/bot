@@ -14,14 +14,22 @@ type review struct {
 }
 
 func runReview(client *github.Client) {
-	prs, _, err := client.PullRequests.List("quilt", "quilt", nil)
+	repos, _, err := client.Repositories.ListByOrg("quilt", nil)
 	if err != nil {
-		fmt.Println("Failed to list pull requests: ", err)
+		fmt.Println("Failed to list repos: ", err)
 		return
 	}
 
-	for _, pr := range prs {
-		processPullRequest(client, pr)
+	for _, repo := range repos {
+		prs, _, err := client.PullRequests.List("quilt", *repo.Name, nil)
+		if err != nil {
+			fmt.Println("Failed to list pull requests: ", err)
+			return
+		}
+
+		for _, pr := range prs {
+			processPullRequest(client, pr)
+		}
 	}
 }
 
@@ -130,7 +138,7 @@ func assignRequestedReviewer(client *github.Client, pr *github.PullRequest,
 func prRequest(client *github.Client, pr *github.PullRequest, method,
 	action string, post, result interface{}) error {
 
-	url := fmt.Sprintf("/repos/quilt/quilt/pulls/%d/%s", *pr.Number, action)
+	url := fmt.Sprintf("/repos/quilt/%s/pulls/%d/%s", *pr.Base.Repo.Name, *pr.Number, action)
 	req, err := client.NewRequest(method, url, post)
 	if err != nil {
 		return err
