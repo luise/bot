@@ -14,14 +14,14 @@ type review struct {
 }
 
 func runReview(client *github.Client) {
-	repos, _, err := client.Repositories.ListByOrg("quilt", nil)
+	repos, _, err := client.Repositories.ListByOrg(ctx(), "quilt", nil)
 	if err != nil {
 		fmt.Println("Failed to list repos: ", err)
 		return
 	}
 
 	for _, repo := range repos {
-		prs, _, err := client.PullRequests.List("quilt", *repo.Name, nil)
+		prs, _, err := client.PullRequests.List(ctx(), "quilt", *repo.Name, nil)
 		if err != nil {
 			fmt.Println("Failed to list pull requests: ", err)
 			return
@@ -147,7 +147,7 @@ func prRequest(client *github.Client, pr *github.PullRequest, method,
 	// This API isn't ready yet, so we have to disclaim with a magic header.
 	req.Header.Set("Accept", "application/vnd.github.black-cat-preview+json")
 
-	_, err = client.Do(req, result)
+	_, err = client.Do(ctx(), req, result)
 	return err
 }
 
@@ -163,7 +163,7 @@ func getTeamMembers(client *github.Client) (members, committers []string) {
 		}
 	}
 
-	teams, _, err := client.Organizations.ListTeams("quilt", nil)
+	teams, _, err := client.Organizations.ListTeams(ctx(), "quilt", nil)
 	if err != nil {
 		fmt.Println("Failed to list teams: ", err)
 		return cachedMembers, cachedCommitters
@@ -179,13 +179,13 @@ func getTeamMembers(client *github.Client) (members, committers []string) {
 		}
 	}
 
-	newMembers, _, err := client.Organizations.ListTeamMembers(memberID, nil)
+	newMembers, _, err := client.Organizations.ListTeamMembers(ctx(), memberID, nil)
 	if err != nil {
 		fmt.Println("Failed to list team members: ", err)
 		return cachedMembers, cachedCommitters
 	}
 
-	newCommitters, _, err := client.Organizations.ListTeamMembers(committerID, nil)
+	newCommitters, _, err := client.Organizations.ListTeamMembers(ctx(), committerID, nil)
 	if err != nil {
 		fmt.Println("Failed to list committers: ", err)
 		return cachedMembers, cachedCommitters

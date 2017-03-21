@@ -1,8 +1,8 @@
 package main
 
 import (
-	"context"
 	"fmt"
+	"golang.org/x/net/context"
 	"os"
 	"time"
 
@@ -22,7 +22,7 @@ func main() {
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: os.Getenv("GITHUB_OATH")},
 	)
-	tc := oauth2.NewClient(context.Background(), ts)
+	tc := oauth2.NewClient(ctx(), ts)
 
 	client := github.NewClient(tc)
 
@@ -115,7 +115,7 @@ func getUsers(client *github.Client) ([]starGazer, error) {
 
 	opt := &github.ListOptions{}
 	for {
-		sgs, resp, err := client.Activity.ListStargazers("quilt", "quilt", opt)
+		sgs, resp, err := client.Activity.ListStargazers(ctx(), "quilt", "quilt", opt)
 		if err != nil {
 			return nil, err
 		}
@@ -134,4 +134,9 @@ func getUsers(client *github.Client) ([]starGazer, error) {
 	}
 
 	return results, nil
+}
+
+func ctx() context.Context {
+	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+	return ctx
 }
