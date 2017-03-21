@@ -5,6 +5,7 @@ exports.New = function(slack_channel, slack_endpoint, github_oath) {
         "GITHUB_OATH": github_oath,
     })]);
 
+    publicInternet.connect(80, service);
     service.connect(80, publicInternet);
     service.connect(443, publicInternet);
     service.connect(53, publicInternet);

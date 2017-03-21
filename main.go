@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"golang.org/x/net/context"
+	"net/http"
 	"os"
 	"time"
 
@@ -26,6 +27,20 @@ func main() {
 
 	client := github.NewClient(tc)
 
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		switch github.WebHookType(r) {
+		case "pull_request_review", "pull_request":
+			runReview(client)
+		}
+	})
+	go http.ListenAndServe(":80", nil)
+
+	go func() {
+		for range time.Tick(10 * time.Minute) {
+			runReview(client)
+		}
+	}()
+
 	var users []starGazer
 	for range time.Tick(15 * time.Second) {
 		new, err := getUsers(client)
@@ -38,8 +53,6 @@ func main() {
 			runStarCheck(users, new)
 		}
 		users = new
-
-		runReview(client)
 	}
 }
 
