@@ -1,3 +1,5 @@
+const {Container, Service, publicInternet} = require("@quilt/quilt");
+
 exports.New = function(slack_channel, slack_endpoint, github_oath) {
     service = new Service("bot", [new Container("quilt/bot").withEnv({
         "SLACK_CHANNEL": slack_channel,

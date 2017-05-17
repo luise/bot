@@ -1,0 +1,9 @@
+{
+  "name": "@quilt/bot",
+  "version": "0.0.1",
+  "main": "./bot.js",
+  "license": "MIT",
+  "dependencies": {
+    "@quilt/quilt": "quilt/quilt"
+  }
+}
