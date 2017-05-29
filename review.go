@@ -39,56 +39,31 @@ var committerIndex = rand.Intn(100)
 func processPullRequest(client *github.Client, pr *github.PullRequest) {
 	members, committers := getTeamMembers(client)
 
-	reviews, err := getReviews(client, pr)
-	if err != nil {
-		fmt.Println("Failed to check for approval: ", err)
-		return
-	}
-
-	var approved bool
-	users := map[string]struct{}{}
-	for _, review := range reviews {
-		users[*review.User.Login] = struct{}{}
-		approved = approved || review.State == "APPROVED"
-	}
-
-	committerSet := map[string]struct{}{}
-	for _, c := range committers {
-		committerSet[c] = struct{}{}
-		if _, ok := users[c]; ok {
-			return
-		}
-	}
-
-	// Someone has been assigned this PR, but they haven't approved it yet.  Can't do
-	// anything until they final say it's OK.
-	if len(users) > 0 && !approved {
-		return
-	}
-
 	reviewers, err := getRequestedReviewers(client, pr)
 	if err != nil {
 		fmt.Println("Failed to list requested reviewers: ", err)
 		return
 	}
 
-	for _, reviewer := range reviewers {
-		user := *reviewer.Login
-		users[user] = struct{}{}
-		if _, ok := committerSet[user]; ok {
-			// Assigned to a comitter, nothing more to do.
-			return
+	if len(reviewers) > 0 {
+		return
+	}
+
+	var byCommitter bool
+	for _, c := range committers {
+		if c == *pr.User.Login {
+			byCommitter = true
 		}
 	}
 
 	var assignee string
-	if len(users) == 0 {
-		// No one is assigned to the PR, go ahead and pick someone.
+	if byCommitter {
 		assignee = chooseReviewer(members, &memberIndex, pr)
-	} else if approved {
-		// No committer assigned, but the PR has been approved.
-		assignee = chooseReviewer(committers, &committerIndex, pr)
 	} else {
+		assignee = chooseReviewer(committers, &committerIndex, pr)
+	}
+
+	if assignee == "" {
 		return
 	}
 
@@ -99,21 +74,11 @@ func processPullRequest(client *github.Client, pr *github.PullRequest) {
 }
 
 func chooseReviewer(options []string, index *int, pr *github.PullRequest) string {
-	for i := 0; i < len(options); i++ {
+	if len(options) > 0 {
 		*index++
-		choice := options[*index%len(options)]
-		if choice != *pr.User.Login {
-			return choice
-		}
+		return options[*index%len(options)]
 	}
-
 	return ""
-}
-
-func getReviews(client *github.Client, pr *github.PullRequest) ([]review, error) {
-	var reviews []review
-	err := prRequest(client, pr, "GET", "reviews", nil, &reviews)
-	return reviews, err
 }
 
 func getRequestedReviewers(client *github.Client,
