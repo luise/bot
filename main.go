@@ -30,11 +30,9 @@ func main() {
 	})
 	go http.ListenAndServe(":80", nil)
 
-	go func() {
-		for range time.Tick(10 * time.Minute) {
-			runReview(client)
-		}
-	}()
+	for range time.Tick(10 * time.Minute) {
+		runReview(client)
+	}
 }
 
 func ctx() context.Context {
