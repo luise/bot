@@ -45,7 +45,25 @@ func processPullRequest(client *github.Client, pr *github.PullRequest) {
 		return
 	}
 
-	if len(reviewers) > 0 {
+	reviews, err := getReviews(client, pr)
+	if err != nil {
+		fmt.Println("Failed to list reviews: ", err)
+		return
+	}
+
+	var reviewed bool
+	for _, review := range reviews {
+		// GitHub `reviews` also include comments.
+		reviewed = reviewed || review.State == "APPROVED" ||
+			review.State == "CHANGES_REQUESTED"
+	}
+
+	// GitHub automatically removes a requested reviewer after she approves or requests
+	// changes. When this has happened, or if there is a pending review request, we
+	// shouldn't assign someone else.
+	// Note, this means, the PR will have no requested reviewer after the initial review
+	// is submitted.
+	if len(reviewers) > 0 || reviewed {
 		return
 	}
 
@@ -98,6 +116,12 @@ func assignRequestedReviewer(client *github.Client, pr *github.PullRequest,
 	}
 
 	return prRequest(client, pr, "POST", "requested_reviewers", &post, nil)
+}
+
+func getReviews(client *github.Client, pr *github.PullRequest) ([]review, error) {
+	var reviews []review
+	err := prRequest(client, pr, "GET", "reviews", nil, &reviews)
+	return reviews, err
 }
 
 func prRequest(client *github.Client, pr *github.PullRequest, method,
