@@ -51,19 +51,13 @@ func processPullRequest(client *github.Client, pr *github.PullRequest) {
 		return
 	}
 
-	var reviewed bool
-	for _, review := range reviews {
-		// GitHub `reviews` also include comments.
-		reviewed = reviewed || review.State == "APPROVED" ||
-			review.State == "CHANGES_REQUESTED"
-	}
-
-	// GitHub automatically removes a requested reviewer after she approves or requests
-	// changes. When this has happened, or if there is a pending review request, we
-	// shouldn't assign someone else.
+	// GitHub automatically removes the requested reviewer after they submit a review.
+	// When this has happened, or if there is a pending review request, we shouldn't
+	// assign someone else.
 	// Note, this means, the PR will have no requested reviewer after the initial review
-	// is submitted.
-	if len(reviewers) > 0 || reviewed {
+	// is submitted by the requested person or if someone submits a review before
+	// quilt-bot submits a request. Either way, the PR will have been reviewed.
+	if len(reviewers) > 0 || len(reviews) > 0 {
 		return
 	}
 
