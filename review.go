@@ -127,9 +127,6 @@ func prRequest(client *github.Client, pr *github.PullRequest, method,
 		return err
 	}
 
-	// This API isn't ready yet, so we have to disclaim with a magic header.
-	req.Header.Set("Accept", "application/vnd.github.black-cat-preview+json")
-
 	_, err = client.Do(ctx(), req, result)
 	return err
 }
