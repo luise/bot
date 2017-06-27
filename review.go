@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
 	"time"
 
@@ -16,14 +17,14 @@ type review struct {
 func runReview(client *github.Client) {
 	repos, _, err := client.Repositories.ListByOrg(ctx(), "quilt", nil)
 	if err != nil {
-		fmt.Println("Failed to list repos: ", err)
+		log.Println("Failed to list repos: ", err)
 		return
 	}
 
 	for _, repo := range repos {
 		prs, _, err := client.PullRequests.List(ctx(), "quilt", *repo.Name, nil)
 		if err != nil {
-			fmt.Println("Failed to list pull requests: ", err)
+			log.Println("Failed to list pull requests: ", err)
 			return
 		}
 
@@ -41,13 +42,13 @@ func processPullRequest(client *github.Client, pr *github.PullRequest) {
 
 	reviewers, err := getRequestedReviewers(client, pr)
 	if err != nil {
-		fmt.Println("Failed to list requested reviewers: ", err)
+		log.Println("Failed to list requested reviewers: ", err)
 		return
 	}
 
 	reviews, err := getReviews(client, pr)
 	if err != nil {
-		fmt.Println("Failed to list reviews: ", err)
+		log.Println("Failed to list reviews: ", err)
 		return
 	}
 
@@ -80,7 +81,7 @@ func processPullRequest(client *github.Client, pr *github.PullRequest) {
 	}
 
 	if err := assignRequestedReviewer(client, pr, assignee); err != nil {
-		fmt.Printf("Failed to assign %s to PR %d: %s\n",
+		log.Printf("Failed to assign %s to PR %d: %s\n",
 			assignee, *pr.Number, err)
 	}
 }
@@ -103,7 +104,7 @@ func getRequestedReviewers(client *github.Client,
 
 func assignRequestedReviewer(client *github.Client, pr *github.PullRequest,
 	login string) error {
-	fmt.Printf("Assign Pull Request %d review to %s\n", *pr.Number, login)
+	log.Printf("Assign Pull Request %d review to %s\n", *pr.Number, login)
 
 	post := map[string][]string{
 		"reviewers": []string{login},
@@ -145,7 +146,7 @@ func getTeamMembers(client *github.Client) (members, committers []string) {
 
 	teams, _, err := client.Organizations.ListTeams(ctx(), "quilt", nil)
 	if err != nil {
-		fmt.Println("Failed to list teams: ", err)
+		log.Println("Failed to list teams: ", err)
 		return cachedMembers, cachedCommitters
 	}
 
@@ -161,13 +162,13 @@ func getTeamMembers(client *github.Client) (members, committers []string) {
 
 	newMembers, _, err := client.Organizations.ListTeamMembers(ctx(), memberID, nil)
 	if err != nil {
-		fmt.Println("Failed to list team members: ", err)
+		log.Println("Failed to list team members: ", err)
 		return cachedMembers, cachedCommitters
 	}
 
 	newCommitters, _, err := client.Organizations.ListTeamMembers(ctx(), committerID, nil)
 	if err != nil {
-		fmt.Println("Failed to list committers: ", err)
+		log.Println("Failed to list committers: ", err)
 		return cachedMembers, cachedCommitters
 	}
 
@@ -187,6 +188,6 @@ func getTeamMembers(client *github.Client) (members, committers []string) {
 		}
 	}
 
-	fmt.Printf("Members: %v. Committers: %v.\n", cachedMembers, cachedCommitters)
+	log.Printf("Members: %v. Committers: %v.\n", cachedMembers, cachedCommitters)
 	return cachedMembers, cachedCommitters
 }

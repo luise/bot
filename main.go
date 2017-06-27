@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"golang.org/x/net/context"
+	"log"
 	"net/http"
 	"os"
 	"time"
@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	fmt.Println("Started!")
+	log.Println("Started!")
 
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: os.Getenv("GITHUB_OATH")},
