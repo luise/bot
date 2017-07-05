@@ -1,9 +1,15 @@
 const {Container, Service, publicInternet} = require("@quilt/quilt");
 
-exports.New = function(github_oath) {
-    service = new Service("bot", [new Container("quilt/bot").withEnv({
-        "GITHUB_OATH": github_oath,
-    })]);
+exports.New = function(github_oath, google_json, slack_token) {
+    service = new Service("bot", [
+        new Container("quilt/bot")
+            .withEnv({
+                "GITHUB_OATH": github_oath,
+                "SLACK_TOKEN": slack_token,
+            }).withFiles({
+                "google_secret.json": google_json
+            })
+    ]);
 
     publicInternet.connect(80, service);
     service.connect(80, publicInternet);
