@@ -19,7 +19,7 @@ func main() {
 
 	// Initialize the various clients so we can re-use them.
 	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: os.Getenv("GITHUB_OATH")},
+		&oauth2.Token{AccessToken: os.Getenv("GITHUB_OAUTH")},
 	)
 	tc := oauth2.NewClient(ctx(), ts)
 
