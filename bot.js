@@ -7,7 +7,7 @@ exports.New = function(github_oauth, google_json, slack_token) {
                 "GITHUB_OAUTH": github_oauth,
                 "SLACK_TOKEN": slack_token,
             }).withFiles({
-                "google_secret.json": google_json
+                "/go/src/app/google_secret.json": google_json
             })
     ]);
 
