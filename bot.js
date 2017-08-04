@@ -11,10 +11,10 @@ exports.New = function New(githubOauth, googleJson, slackToken) {
       }),
   ]);
 
-  publicInternet.connect(80, service);
-  service.connect(80, publicInternet);
-  service.connect(443, publicInternet);
-  service.connect(53, publicInternet);
+  service.allowFrom(publicInternet, 80);
+  publicInternet.allowFrom(service, 80);
+  publicInternet.allowFrom(service, 443);
+  publicInternet.allowFrom(service, 53);
 
   return service;
 };
