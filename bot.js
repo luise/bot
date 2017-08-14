@@ -1,20 +1,20 @@
-const { Container, Service, publicInternet } = require('@quilt/quilt');
+const { Container, publicInternet } = require('@quilt/quilt');
 
 exports.New = function New(githubOauth, googleJson, slackToken) {
-  const service = new Service('bot', [
-    new Container('quilt/bot')
-      .withEnv({
-        GITHUB_OAUTH: githubOauth,
-        SLACK_TOKEN: slackToken,
-      }).withFiles({
-        '/go/src/app/google_secret.json': googleJson,
-      }),
-  ]);
+  const bot = new Container('bot', 'quilt/bot', {
+    env: {
+      GITHUB_OAUTH: githubOauth,
+      SLACK_TOKEN: slackToken,
+    },
+    filepathToContent: {
+      '/go/src/app/google_secret.json': googleJson,
+    },
+  });
 
-  service.allowFrom(publicInternet, 80);
-  publicInternet.allowFrom(service, 80);
-  publicInternet.allowFrom(service, 443);
-  publicInternet.allowFrom(service, 53);
+  bot.allowFrom(publicInternet, 80);
+  publicInternet.allowFrom(bot, 80);
+  publicInternet.allowFrom(bot, 443);
+  publicInternet.allowFrom(bot, 53);
 
-  return service;
+  return bot;
 };
