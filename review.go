@@ -37,80 +37,116 @@ func runReview(client *github.Client) {
 var memberIndex = rand.Intn(100)
 var committerIndex = rand.Intn(100)
 
+func userInList(user *string, listOfUsers []string) bool {
+	for _, userInList := range listOfUsers {
+		if userInList == *user {
+			return true
+		}
+	}
+	return false
+}
+
 func processPullRequest(client *github.Client, pr *github.PullRequest) {
 	members, committers := getTeamMembers(client)
 
+	// Return if there are any reviewers who have been assigned but who
+	// haven't done anything yet.
 	reviewers, err := getRequestedReviewers(client, pr)
 	if err != nil {
 		log.Println("Failed to list requested reviewers: ", err)
 		return
 	}
+	if len(reviewers) > 0 {
+		return
+	}
 
+	// Determine what reviews have already occurred. This list will include
+	// reviews that added comments, reviews that requested changes, and
+	// reviews that approved the PR.
 	reviews, err := getReviews(client, pr)
 	if err != nil {
 		log.Println("Failed to list reviews: ", err)
 		return
 	}
 
-	// GitHub automatically removes the requested reviewer after they submit a review.
-	// When this has happened, or if there is a pending review request, we shouldn't
-	// assign someone else.
-	// Note, this means, the PR will have no requested reviewer after the initial review
-	// is submitted by the requested person or if someone submits a review before
-	// quilt-bot submits a request. Either way, the PR will have been reviewed.
-	if len(reviewers) > 0 || len(reviews) > 0 {
+	if len(reviews) == 0 {
+		// The pull request has had no reviews, so assign a reviewer.
+		assignReviewer(client, pr, members, &memberIndex)
 		return
 	}
 
-	var byCommitter bool
-	for _, c := range committers {
-		if c == *pr.User.Login {
-			byCommitter = true
+	// Parse the reviews to determine whether a second person needs to be assigned
+	// to do a review.
+	nonCommitterApproved := false
+	committerReviewedAfterApproval := false
+	for _, review := range reviews {
+		reviewerIsCommitter := userInList(review.User.Login, committers)
+		if nonCommitterApproved && reviewerIsCommitter {
+			// This code relies on the property that reviews
+			// are returned in chronological order.
+			// We only care about committer reviews that happen
+			// after the non-committer approval, because we want
+			// to ping a committer to merge the PR after the
+			// non-committer approval even if they've already
+			// looked at it earlier.
+			committerReviewedAfterApproval = true
+		}
+		if review.State == "APPROVED" && !reviewerIsCommitter {
+			nonCommitterApproved = true
 		}
 	}
 
-	var assignee string
-	if byCommitter {
-		assignee = chooseReviewer(members, &memberIndex, pr)
-	} else {
-		assignee = chooseReviewer(committers, &committerIndex, pr)
+	prByCommitter := userInList(pr.User.Login, committers)
+	if nonCommitterApproved && !committerReviewedAfterApproval &&
+		!prByCommitter {
+		// A committer hasn't yet been involved in this pull request, so assign
+		// one.
+		assignReviewer(client, pr, committers, &committerIndex)
 	}
+	// Either there's an in-process review (e.g., a non-committer has done
+	// a review but not approved it yet), in which case we don't need to
+	// assign anyone else yet, or a committer has seen the PR, so no one
+	// else needs to review it.
+}
 
-	if assignee == "" {
+func assignReviewer(client *github.Client, pr *github.PullRequest,
+	reviewerOptions []string, index *int) {
+	reviewer := ""
+
+	// Choose a reviewer from the list, who isn't the author of the PR.
+	for i := 0; i < len(reviewerOptions); i++ {
+		*index++
+		possibleReviewer := reviewerOptions[*index%len(reviewerOptions)]
+		if possibleReviewer != *pr.User.Login {
+			reviewer = possibleReviewer
+			break
+		}
+	}
+	if reviewer == "" {
+		log.Printf("No potential reviewers for PR %d\n", *pr.Number)
 		return
 	}
 
-	if err := assignRequestedReviewer(client, pr, assignee); err != nil {
+	log.Printf("Assigning pull request %d review to %s\n", *pr.Number, reviewer)
+	post := map[string][]string{
+		"reviewers": []string{reviewer},
+	}
+	err := prRequest(client, pr, "POST", "requested_reviewers", &post, nil)
+	if err != nil {
 		log.Printf("Failed to assign %s to PR %d: %s\n",
-			assignee, *pr.Number, err)
+			reviewer, *pr.Number, err)
 	}
 }
 
-func chooseReviewer(options []string, index *int, pr *github.PullRequest) string {
-	if len(options) > 0 {
-		*index++
-		return options[*index%len(options)]
-	}
-	return ""
-}
-
+// getRequestedReviewers returns people from whom a review has been requested,
+// and who haven't done anything yet (i.e., they haven't approved the PR,
+// or left comments in a review).
 func getRequestedReviewers(client *github.Client,
 	pr *github.PullRequest) ([]github.User, error) {
 
 	var result []github.User
 	err := prRequest(client, pr, "GET", "requested_reviewers", nil, &result)
 	return result, err
-}
-
-func assignRequestedReviewer(client *github.Client, pr *github.PullRequest,
-	login string) error {
-	log.Printf("Assign Pull Request %d review to %s\n", *pr.Number, login)
-
-	post := map[string][]string{
-		"reviewers": []string{login},
-	}
-
-	return prRequest(client, pr, "POST", "requested_reviewers", &post, nil)
 }
 
 func getReviews(client *github.Client, pr *github.PullRequest) ([]review, error) {
@@ -132,9 +168,15 @@ func prRequest(client *github.Client, pr *github.PullRequest, method,
 	return err
 }
 
+// cachedMembers and cachedCommiters contain a cached copy of all of the members of the
+// Quilt team (including the committers) and of all of the Quilt committers,
+// respectively.
 var cachedMembers, cachedCommitters []string
 var memberRateLimit = time.Tick(time.Hour)
 
+// getTeamMembers returns two lists: the first list is of all of the members of
+// the Quilt team, including the committers, and the second list is of only the
+// committers in the team.
 func getTeamMembers(client *github.Client) (members, committers []string) {
 	select {
 	case <-memberRateLimit:
@@ -173,19 +215,15 @@ func getTeamMembers(client *github.Client) (members, committers []string) {
 	}
 
 	cachedCommitters = []string{}
-	committerSet := map[string]struct{}{}
 	for _, c := range newCommitters {
 		committer := *c.Login
 		cachedCommitters = append(cachedCommitters, committer)
-		committerSet[committer] = struct{}{}
 	}
 
 	cachedMembers = []string{}
 	for _, m := range newMembers {
 		member := *m.Login
-		if _, ok := committerSet[member]; !ok {
-			cachedMembers = append(cachedMembers, member)
-		}
+		cachedMembers = append(cachedMembers, member)
 	}
 
 	log.Printf("Members: %v. Committers: %v.\n", cachedMembers, cachedCommitters)
