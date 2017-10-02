@@ -226,6 +226,5 @@ func getTeamMembers(client *github.Client) (members, committers []string) {
 		cachedMembers = append(cachedMembers, member)
 	}
 
-	log.Printf("Members: %v. Committers: %v.\n", cachedMembers, cachedCommitters)
 	return cachedMembers, cachedCommitters
 }
