@@ -47,6 +47,7 @@ func userInList(user *string, listOfUsers []string) bool {
 }
 
 func processPullRequest(client *github.Client, pr *github.PullRequest) {
+	log.Printf("Processing PR %d\n", *pr.Number)
 	members, committers := getTeamMembers(client)
 
 	// Return if there are any reviewers who have been assigned but who
@@ -57,6 +58,8 @@ func processPullRequest(client *github.Client, pr *github.PullRequest) {
 		return
 	}
 	if len(reviewers) > 0 {
+		log.Printf("PR %d has %d outstanding reviewers\n",
+			*pr.Number, len(reviewers))
 		return
 	}
 
