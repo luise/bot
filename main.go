@@ -49,7 +49,7 @@ func main() {
 	reviewTicker := time.Tick(10 * time.Minute)
 
 	// The metrics only need to be updated once a day, but do it twice
-	// a day just to be safe (e.g., for the case Quilt bot gets restarted, to
+	// a day just to be safe (e.g., for the case Kelda bot gets restarted, to
 	// make sure we don't miss a day of data).
 	metricsTicker := time.Tick(12 * time.Hour)
 

@@ -15,14 +15,14 @@ type review struct {
 }
 
 func runReview(client *github.Client) {
-	repos, _, err := client.Repositories.ListByOrg(ctx(), "quilt", nil)
+	repos, _, err := client.Repositories.ListByOrg(ctx(), "kelda", nil)
 	if err != nil {
 		log.Println("Failed to list repos: ", err)
 		return
 	}
 
 	for _, repo := range repos {
-		prs, _, err := client.PullRequests.List(ctx(), "quilt", *repo.Name, nil)
+		prs, _, err := client.PullRequests.List(ctx(), "kelda", *repo.Name, nil)
 		if err != nil {
 			log.Println("Failed to list pull requests: ", err)
 			return
@@ -161,7 +161,7 @@ func getReviews(client *github.Client, pr *github.PullRequest) ([]review, error)
 func prRequest(client *github.Client, pr *github.PullRequest, method,
 	action string, post, result interface{}) error {
 
-	url := fmt.Sprintf("/repos/quilt/%s/pulls/%d/%s", *pr.Base.Repo.Name, *pr.Number, action)
+	url := fmt.Sprintf("/repos/kelda/%s/pulls/%d/%s", *pr.Base.Repo.Name, *pr.Number, action)
 	req, err := client.NewRequest(method, url, post)
 	if err != nil {
 		return err
@@ -172,13 +172,13 @@ func prRequest(client *github.Client, pr *github.PullRequest, method,
 }
 
 // cachedMembers and cachedCommiters contain a cached copy of all of the members of the
-// Quilt team (including the committers) and of all of the Quilt committers,
+// Kelda team (including the committers) and of all of the Kelda committers,
 // respectively.
 var cachedMembers, cachedCommitters []string
 var memberRateLimit = time.Tick(time.Hour)
 
 // getTeamMembers returns two lists: the first list is of all of the members of
-// the Quilt team, including the committers, and the second list is of only the
+// the Kelda team, including the committers, and the second list is of only the
 // committers in the team.
 func getTeamMembers(client *github.Client) (members, committers []string) {
 	select {
@@ -189,7 +189,7 @@ func getTeamMembers(client *github.Client) (members, committers []string) {
 		}
 	}
 
-	teams, _, err := client.Organizations.ListTeams(ctx(), "quilt", nil)
+	teams, _, err := client.Organizations.ListTeams(ctx(), "kelda", nil)
 	if err != nil {
 		log.Println("Failed to list teams: ", err)
 		return cachedMembers, cachedCommitters

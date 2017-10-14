@@ -1,4 +1,4 @@
-// Quilt uses AirBnB's JavaScript style guide:
+// Kelda uses AirBnB's JavaScript style guide:
 // https://github.com/airbnb/javascript
 {
     "extends": "airbnb-base",

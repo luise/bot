@@ -14,8 +14,8 @@ import (
 )
 
 var (
-	githubOwner       = "quilt"
-	githubRepo        = "quilt"
+	githubOwner       = "kelda"
+	githubRepo        = "kelda"
 	githubInstallRepo = "install"
 
 	// Information about the Google sheet to update.
@@ -36,7 +36,7 @@ var (
 	errorValue = -1
 )
 
-// recordMetrics records metrics about Quilt engagement in a Google spreadsheet.
+// recordMetrics records metrics about Kelda engagement in a Google spreadsheet.
 // When this function encounters errors, it attempts to write an error value
 // the spreadsheet, logs the error, and continues. We avoid exiting on error
 // so that we can collect partial results when possible.
@@ -181,7 +181,7 @@ func getTotalReleaseDownloads(githubClient *github.Client) int {
 	return totalReleaseDownloads
 }
 
-// getTotalCommits returns the total number of git commits in the main Quilt repo.
+// getTotalCommits returns the total number of git commits in the main Kelda repo.
 func getTotalCommits(githubClient *github.Client) int {
 	// The github client paginates responses, so we need to iterate through all
 	// of the pages to get the total number of commits. Unfortunately there is
@@ -254,7 +254,7 @@ func getActiveSlackUsers(slackClient *slack.Client) int {
 	return numActive
 }
 
-// recordTotalData collects a variety of statistics about total engagement with Quilt
+// recordTotalData collects a variety of statistics about total engagement with Kelda
 // on Slack and Github, and writes it to a Google Sheet.
 func recordTotalData(
 	githubClient *github.Client,

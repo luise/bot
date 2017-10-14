@@ -1,7 +1,7 @@
 const { Container, publicInternet } = require('@quilt/quilt');
 
 /**
- * Creates a container running the Quilt bot. Callers must explicitly allow
+ * Creates a container running the Kelda bot. Callers must explicitly allow
  * traffic from the public internet if they want it to be publicly accessible.
  */
 exports.New = function New(githubOauth, googleJson, slackToken) {
