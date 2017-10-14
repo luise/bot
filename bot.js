@@ -5,7 +5,7 @@ const { Container, publicInternet } = require('@quilt/quilt');
  * traffic from the public internet if they want it to be publicly accessible.
  */
 exports.New = function New(githubOauth, googleJson, slackToken) {
-  const bot = new Container('bot', 'quilt/bot', {
+  const bot = new Container('bot', 'keldaio/bot', {
     env: {
       GITHUB_OAUTH: githubOauth,
       SLACK_TOKEN: slackToken,
