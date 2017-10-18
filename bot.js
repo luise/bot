@@ -1,4 +1,4 @@
-const { Container, publicInternet } = require('@quilt/quilt');
+const { Container, publicInternet } = require('kelda');
 
 /**
  * Creates a container running the Kelda bot. Callers must explicitly allow
