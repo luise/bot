@@ -5,8 +5,7 @@ node_js:
 
 install:
     - npm install .
-    - curl -sL -o ./kelda https://github.com/kelda/kelda/releases/download/dev/kelda_linux
-        && chmod +x ./kelda
+    - npm install kelda/deployment-engine-downloader && ./node_modules/.bin/kelda-downloader
 
 before_script:
     - npm install -g gulp-cli
