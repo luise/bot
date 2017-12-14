@@ -21,7 +21,7 @@ var (
 	// Information about the Google sheet to update.
 	googleSpreadsheetID    = "1Zj7lbFBO17h9yROxKwYSZ84QJhxjyxqy3bbh6NxDx88"
 	visitorsSheetName      = "Github Daily Visitors"
-	clonesQuiltSheetName   = "Github Daily Clones: Quilt"
+	clonesKeldaSheetName   = "Github Daily Clones: Kelda"
 	clonesInstallSheetName = "Github Daily Clones: Install"
 	summarySheetName       = "Summary"
 
@@ -44,7 +44,7 @@ func recordMetrics(githubClient *github.Client, googleClient *sheets.Service,
 	slackClient *slack.Client) {
 	recordDailyGithubViews(githubClient, googleClient)
 	recordDailyGithubClones(
-		githubRepo, clonesQuiltSheetName, githubClient, googleClient)
+		githubRepo, clonesKeldaSheetName, githubClient, googleClient)
 	recordDailyGithubClones(
 		githubInstallRepo, clonesInstallSheetName, githubClient, googleClient)
 	recordTotalData(githubClient, googleClient, slackClient)
@@ -298,7 +298,7 @@ func recordTotalData(
 		githubStars,
 		getSlackUsers(slackClient),
 		getActiveSlackUsers(slackClient),
-		getDailyTotalFormula(clonesQuiltSheetName, destRow),
+		getDailyTotalFormula(clonesKeldaSheetName, destRow),
 		getTotalReleaseDownloads(githubClient),
 		getDailyTotalFormula(clonesInstallSheetName, destRow),
 		getTotalContributors(githubClient),
