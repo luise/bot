@@ -1,4 +1,4 @@
-const { Container, publicInternet } = require('kelda');
+const { Container, publicInternet, allowTraffic } = require('kelda');
 
 /**
  * Creates a container running the Kelda bot. Callers must explicitly allow
@@ -15,9 +15,9 @@ exports.New = function New(githubOauth, googleJson, slackToken) {
     },
   });
 
-  publicInternet.allowFrom(bot, 80);
-  publicInternet.allowFrom(bot, 443);
-  publicInternet.allowFrom(bot, 53);
+  allowTraffic(bot, publicInternet, 80);
+  allowTraffic(bot, publicInternet, 443);
+  allowTraffic(bot, publicInternet, 53);
 
   return bot;
 };
