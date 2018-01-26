@@ -147,9 +147,9 @@ func assignReviewer(client *github.Client, pr *github.PullRequest,
 func getRequestedReviewers(client *github.Client,
 	pr *github.PullRequest) ([]github.User, error) {
 
-	var result []github.User
+	var result struct{ Users []github.User }
 	err := prRequest(client, pr, "GET", "requested_reviewers", nil, &result)
-	return result, err
+	return result.Users, err
 }
 
 func getReviews(client *github.Client, pr *github.PullRequest) ([]review, error) {
