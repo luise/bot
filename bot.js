@@ -5,7 +5,9 @@ const { Container, publicInternet, allowTraffic } = require('kelda');
  * traffic from the public internet if they want it to be publicly accessible.
  */
 exports.New = function New(githubOauth, googleJson, slackToken) {
-  const bot = new Container('bot', 'keldaio/bot', {
+  const bot = new Container({
+    name: 'bot',
+    image: 'keldaio/bot',
     env: {
       GITHUB_OAUTH: githubOauth,
       SLACK_TOKEN: slackToken,
